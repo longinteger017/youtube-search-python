@@ -1,15 +1,27 @@
 # vscode
 
 .vscode
+.idea/
+.ideavimrc
+bin/
+lib/
+lib64
+pyvenv.cfg
+requirements.txt
+share/
 
 # python
 
 __pycache__
 dist
-
+venv/
+env-yt-searcher/
 # testing
 
 test.py
 test2.py
 *.json
 *.html
+asyncExample.py
+syncExample.py
+output-info.md

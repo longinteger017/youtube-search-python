@@ -142,7 +142,7 @@ class VideosSearch(SearchCore):
             ]
         }
     '''
-    def __init__(self, query: str, limit: int = 20, language: str = 'en', region: str = 'US', timeout: int = None):
+    def __init__(self, query: str, limit: int = 50, language: str = 'en', region: str = 'US', timeout: int = None):
         self.searchMode = (True, False, False)
         super().__init__(query, limit, language, region, SearchMode.videos, timeout)
         self.sync_create()
