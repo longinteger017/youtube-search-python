@@ -83,7 +83,7 @@ def get_results(kw):
                 # print("result", pp.pprint(search.result()['result'][0]))
             except Exception as e:
                 print(f"Error occured while appending data: {e}")
-                print("Error occurec at data:")
+                logging.error(f"Error occurred while scraping: {data}")
                 pp.pprint(data)
             search_result = search.result()['result']
             print(page, len(search_result))
@@ -138,38 +138,20 @@ def the_coordinator(kws):
     except Exception as e:
         print(f"Error occured: {e}")
 
-def init_logger():
-    # Gets or creates a logger
-    logger = logging.getLogger(__name__)
 
-    # set log level
-    logger.setLevel(logging.WARNING)
-
-    # define file handler and set formatter
-    file_handler = logging.FileHandler('main.log')
-    formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
-    file_handler.setFormatter(formatter)
-
-    # add file handler to logger
-    logger.addHandler(file_handler)
-
-    # Logs
-    # logger.debug('A debug message')
-    # logger.info('An info message')
-    # logger.warning('Something is not right.')
-    # logger.error('A Major error has happened.')
-    # logger.critical('Fatal error. Cannot continue')
-    return logger
 def main():
-    logger = init_logger()
+    logging.basicConfig(format='%(asctime)s %(message)s',
+                        datefmt='%m/%d/%Y %I:%M:%S %p',
+                        filename='main.log',
+                        level=logging.DEBUG)
 
     kws = []
 
     with open('keywords.txt', "r") as f:
         for line in f:
             kws.append(line)
-        logger.info('Keywords have been created successfully.')
-    logger.debug("start initiator")
+        logging.info('Keywords have been created successfully.')
+    logging.debug("start initiator")
     the_coordinator(kws)
 
 main()
