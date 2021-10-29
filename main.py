@@ -87,15 +87,17 @@ def get_results(kw):
                 pp.pprint(data)
             search_result = search.result()['result']
             print(page, len(search_result))
-            if len(search_result) > 0:
-                search.next()
-                search_results = search_results + search_result
-                count = collections.Counter([user['channel']['name'] for user in search_results])
-                # print("counter ", json.dumps(dict(count)))
-                counter_results = counter_results + count
-            else:
-                break
-
+            try:
+                if len(search_result) > 0:
+                    search.next()
+                    search_results = search_results + search_result
+                    count = collections.Counter([user['channel']['name'] for user in search_results])
+                    # print("counter ", json.dumps(dict(count)))
+                    counter_results = counter_results + count
+                else:
+                    break
+            except Exception as e:
+                logging.error(f"Error occured while next()")
         pp.pprint(dict_for_df)
         final = dict(counter_results)
         sorted_list = sorted(search_results, key=lambda d: d['channel']['name'])
