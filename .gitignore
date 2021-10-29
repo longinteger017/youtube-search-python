@@ -11,7 +11,7 @@ requirements.txt
 share/
 
 # python
-
+keywords.txt
 __pycache__
 dist
 venv/
