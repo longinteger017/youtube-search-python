@@ -103,6 +103,8 @@ def get_results(kw):
         # pp.pprint(sorted_list)
     except Exception as e:
         print(f"Error occured while looping through pages: {e}")
+        logging.error(f"Error occured while looping through pages: {e}")
+        pass
 
     return sorted_list, count, dict_for_df
 
@@ -137,12 +139,20 @@ def the_coordinator(kws):
             json.dump(dict_for_df, fp)
     except Exception as e:
         print(f"Error occured: {e}")
-
+        logging.error(f"Error occured in the_coordinator: {e}")
 
 def main():
+    from datetime import datetime
+
+    # datetime object containing current date and time
+    now = datetime.now()
+    # dd/mm/YY H:M:S
+    dt_string = now.strftime("%d-%m-%Y--%H:%M:%S")
+    filename = "main_" + dt_string + ".log"
+    print(filename)
     logging.basicConfig(format='%(asctime)s %(message)s',
                         datefmt='%m/%d/%Y %I:%M:%S %p',
-                        filename='main.log',
+                        filename=filename,
                         level=logging.DEBUG)
 
     kws = []
@@ -151,6 +161,7 @@ def main():
         for line in f:
             kws.append(line)
         logging.info('Keywords have been created successfully.')
+
     logging.debug("start initiator")
     the_coordinator(kws)
 
