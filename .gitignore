@@ -1,5 +1,5 @@
 # vscode
-
+.env
 .vscode
 .idea/
 .ideavimrc
@@ -21,6 +21,7 @@ env-yt-searcher/
 test.py
 test2.py
 *.json
+*.log
 *.html
 asyncExample.py
 syncExample.py

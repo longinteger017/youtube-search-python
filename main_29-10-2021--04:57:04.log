@@ -1,4 +1,0 @@
-10/29/2021 04:57:04 AM Keywords have been created successfully.
-10/29/2021 04:57:04 AM start initiator
-10/29/2021 04:57:05 AM HTTP Request: GET https://clients1.google.com/complete/search?hl=en&gl=US&q=a+day+in+the+life%0A&client=youtube&gs_ri=youtube&ds=yt "HTTP/1.1 200 OK"
-10/29/2021 04:57:05 AM HTTP Request: POST https://www.youtube.com/youtubei/v1/search?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8 "HTTP/1.1 200 OK"
