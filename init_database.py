@@ -1,11 +1,11 @@
 import psycopg2
 from psycopg2 import Error
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
+import json
 env = os.environ
 
+with open("config.json", 'r') as configs:
+    config_data = json.load(configs)
 try:
     connection = psycopg2.connect(user=env.get("DB_USERNAME"),
                                   password=env.get("DB_PASSWORD"),
@@ -15,10 +15,19 @@ try:
 
     cursor = connection.cursor()
     # SQL query to create a new table
-    create_table_query = '''CREATE TABLE mobile
-          (ID INT PRIMARY KEY     NOT NULL,
-          MODEL           TEXT    NOT NULL,
-          PRICE         REAL); '''
+    create_table_query = '''
+        CREATE TABLE youtube_videos
+        (ID SERIAL PRIMARY  KEY         NOT NULL UNIQUE,
+          TITLE             TEXT        NOT NULL, 
+          CHANNEL_ID        TEXT        NOT NULL,
+          CHANNEL_LINK      TEXT        NOT NULL,
+          CHANNEL_NAME      TEXT        NOT NULL,
+          VIEW_COUNT        TEXT        NOT NULL,
+          VIDEO_DURATION    TEXT        NOT NULL,
+          VIDEO_PUB_DATE    TEXT        NOT NULL,
+          CREATED_AT        TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+          ); 
+          '''
     # Execute a command: this creates a new table
     cursor.execute(create_table_query)
     connection.commit()

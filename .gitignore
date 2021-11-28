@@ -16,6 +16,8 @@ __pycache__
 dist
 venv/
 env-yt-searcher/
+logs/
+keywords/
 # testing
 
 test.py

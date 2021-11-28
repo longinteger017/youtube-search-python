@@ -167,4 +167,6 @@ def main():
     logging.debug("start initiator")
     the_coordinator(kws)
 
-main()
+# main()
+
+json.loads("/output_files/dict_for_df")
