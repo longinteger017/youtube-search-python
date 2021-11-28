@@ -69,7 +69,7 @@ def get_results(kw):
 
     # loop through pages of result of a kw
     try:
-        for page in range(0,100):
+        for page in range(0,1):
             try:
                 data = search.result()['result'][0]
                 dict_for_df['view_count'].append(data['viewCount']['text'])
@@ -167,6 +167,6 @@ def main():
     logging.debug("start initiator")
     the_coordinator(kws)
 
-# main()
-
-json.loads("/output_files/dict_for_df")
+if __name__ == "__main__":
+    main()
+    # json.loads("/output_files/dict_for_df")

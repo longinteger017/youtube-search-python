@@ -6,12 +6,13 @@ env = os.environ
 
 with open("config.json", 'r') as configs:
     config_data = json.load(configs)
+
 try:
-    connection = psycopg2.connect(user=env.get("DB_USERNAME"),
-                                  password=env.get("DB_PASSWORD"),
-                                  host=env.get("DB_HOST"),
-                                  port=env.get("DB_PORT"),
-                                  database=env.get("DB_NAME"))
+    connection = psycopg2.connect(user=config_data["DB_USERNAME"],
+                                  password=config_data["DB_PASSWORD"],
+                                  host=config_data["DB_HOST"],
+                                  port=config_data["DB_PORT"],
+                                  database=config_data["DB_NAME"])
 
     cursor = connection.cursor()
     # SQL query to create a new table
@@ -32,11 +33,7 @@ try:
     cursor.execute(create_table_query)
     connection.commit()
     print("Table created successfully in PostgreSQL ")
-
+    connection.close() 
 except (Exception, Error) as error:
     print("Error while connecting to PostgreSQL", error)
-finally:
-    if connection:
-        cursor.close()
-        connection.close()
-        print("PostgreSQL connection is closed")
+    
