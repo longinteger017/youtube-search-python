@@ -4,10 +4,16 @@ import json
 import collections
 from collections import Counter
 import logging
+import logging.config
 import threading
 import time
+from datetime import datetime
+import init_database as db_helper
+import pandas as pd
+import numpy as np
 
-#TODO
+
+# TODO
 ## GET ALL VIDEOS
 # get all videos from a certain keyword
 # save: title, views, published, thumbnail url,
@@ -19,7 +25,7 @@ import time
 # calculate ratio  avg views / subscriber count
 
 def save_details(search_result):
-    yt_details = {"channels":{}}
+    yt_details = {"channels": {}}
 
     import pdb
     # print(type(json.loads(result)))
@@ -30,6 +36,7 @@ def save_details(search_result):
         # yt_details['channels'][yt_details['channels']['name']] = 1
     print(yt_details)
     return yt_details
+
 
 def main2():
     '''
@@ -54,33 +61,40 @@ def main2():
     # pp.pprint(video)
     # f.write(json.dumps(video))
 
-
     # f.close()
 
     # save_details(result)
     # print(result)
 
 
-dict_for_df = {"view_count": [], "title": [], "pub_time": [], "duration": [], "channel_name":[], "channel_id": [], "channel_link": [], "thumbnails": []}
-def get_results(kw):
+dict_for_df = {"view_count": [], "title": [], "pub_time": [], "duration": [], "channel_name": [], "channel_id": [],
+               "channel_link": [], "thumbnails": []}
+
+
+def get_results(kw, config_data):
     search_results = []
     counter_results = Counter()
     search = VideosSearch(kw)
 
     # loop through pages of result of a kw
     try:
-        for page in range(0,100):
+        for page in range(0, config_data['limit_of_pages_per_kw']):
             try:
-                data = search.result()['result'][0]
-                dict_for_df['view_count'].append(data['viewCount']['text'])
-                dict_for_df['title'].append(data['title'])
-                dict_for_df['pub_time'].append(data['publishedTime'])
-                dict_for_df['duration'].append(data['duration'])
-                dict_for_df['channel_name'].append(data['channel']['name'])
-                dict_for_df['channel_id'].append(data['channel']['id'])
-                dict_for_df['channel_link'].append(data['channel']['link'])
-                dict_for_df['thumbnails'].append(data['thumbnails'][0]['url'])
-                # print("result", pp.pprint(search.result()['result'][0]))
+                if len(search.result()['result']) > 0:
+                    # print("RESULT:", search.result()['result'])
+                    data = search.result()['result'][0]
+
+                    dict_for_df['title'].append(data['title'])
+                    dict_for_df['channel_id'].append(data['channel']['id'])
+                    dict_for_df['channel_link'].append(data['channel']['link'])
+                    dict_for_df['channel_name'].append(data['channel']['name'])
+                    dict_for_df['view_count'].append(data['viewCount']['text'])
+                    dict_for_df['duration'].append(data['duration'])
+                    dict_for_df['pub_time'].append(data['publishedTime'])
+                    dict_for_df['thumbnails'].append(data['thumbnails'][0]['url'])
+                    # print("result", pp.pprint(search.result()['result'][0]))
+                else:
+                    continue
             except Exception as e:
                 print(f"Error occured while appending data: {e}")
                 logging.error(f"Error occurred while scraping: {data}")
@@ -98,7 +112,6 @@ def get_results(kw):
                     break
             except Exception as e:
                 logging.error(f"Error occured while next()")
-        pp.pprint(dict_for_df)
         final = dict(counter_results)
         sorted_list = sorted(search_results, key=lambda d: d['channel']['name'])
         # print(dict(sorted(final.items(), key=lambda item: item[1])))
@@ -110,7 +123,8 @@ def get_results(kw):
 
     return sorted_list, count, dict_for_df
 
-def the_coordinator(kws):
+
+def the_coordinator(kws, config_data, db_conn):
     occurence_counter = Counter()
     try:
         for kw in kws:
@@ -118,14 +132,13 @@ def the_coordinator(kws):
             suggestion_list = json.loads(suggestions.get(kw, mode=ResultMode.json))['result']
             final_list = []
             for kw_sugg in suggestion_list:
-                print(kw_sugg)
-                videosresults_by_kw, occurences_of_yt, dict_for_df = get_results(kw_sugg)
+                print(f"Suggested KW <{kw_sugg}> for <{kw}>")
+                videosresults_by_kw, occurences_of_yt, dict_for_df = get_results(kw_sugg, config_data)
                 final_list = final_list + videosresults_by_kw
                 occurence_counter = occurence_counter + occurences_of_yt
 
             # print(final_list)
             counter_dict = dict(sorted(dict(occurence_counter).items(), key=lambda item: item[1]))
-
 
         f = open('output_list.json', 'w')
         f.write('[')
@@ -139,34 +152,56 @@ def the_coordinator(kws):
 
         with open('dict_for_df.json', 'w') as fp:
             json.dump(dict_for_df, fp)
+
+            result_df = pd.DataFrame.from_dict(dict_for_df)
+            # db_helper.create_db(db_conn, config_data)
+
+            # db_helper.insert_into_db(result_df, db_conn, config_data
+        import pdb
+        pdb.set_trace()
+        result_df.to_sql(name='youtube_videos', if_exists='append', con=db_conn)
+
+
+
     except Exception as e:
         print(f"Error occured: {e}")
         logging.error(f"Error occured in the_coordinator: {e}")
 
-def main():
-    from datetime import datetime
 
-    # datetime object containing current date and time
+def init_logger():
     now = datetime.now()
-    # dd/mm/YY H:M:S
     dt_string = now.strftime("%d-%m-%Y--%H:%M:%S")
-    filename = "main_" + dt_string + ".log"
-    print(filename)
+    filename = "logs/main_" + dt_string + ".log"
     logging.basicConfig(format='%(asctime)s %(message)s',
                         datefmt='%m/%d/%Y %I:%M:%S %p',
                         filename=filename,
                         level=logging.DEBUG)
 
-    kws = []
 
-    with open('keywords.txt', "r") as f:
+def create_kw_list(kw_file):
+    kw_list = []
+
+    with open(kw_file, "r") as f:
         for line in f:
-            kws.append(line)
+            kw_list.append(line)
         logging.info('Keywords have been created successfully.')
 
-    logging.debug("start initiator")
-    the_coordinator(kws)
+    return kw_list
 
-# main()
+def main():
+    with open("config.json", 'r') as configs:
+        config_data = json.load(configs)
 
-json.loads("/output_files/dict_for_df")
+    init_logger()
+    kws = create_kw_list("keywords/keywords1.txt")
+
+    logging.info("start initiator")
+    the_coordinator(kws, config_data, db_helper.create_connection(config_data['DB_PATH']))
+    print("+" * 28)
+    print("+++ FINISHED COORDINATOR +++")
+    print("+" * 28)
+
+
+main()
+
+# json.loads("/output_files/dict_for_df")

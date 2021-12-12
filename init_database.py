@@ -1,42 +1,47 @@
-import psycopg2
-from psycopg2 import Error
 import os
-import json
+import sqlite3
+from sqlite3 import Error
+import logging
 env = os.environ
 
-with open("config.json", 'r') as configs:
-    config_data = json.load(configs)
-try:
-    connection = psycopg2.connect(user=env.get("DB_USERNAME"),
-                                  password=env.get("DB_PASSWORD"),
-                                  host=env.get("DB_HOST"),
-                                  port=env.get("DB_PORT"),
-                                  database=env.get("DB_NAME"))
+def create_connection(local_db_path):
+    """ create a database connection to a SQLite database """
+    conn = None
+    try:
+        conn = sqlite3.connect(local_db_path)
+        logging.info(f"SQLite DB has been created with version {sqlite3.version}")
+        return conn
+    except Error as e:
+        print(e)
 
-    cursor = connection.cursor()
-    # SQL query to create a new table
-    create_table_query = '''
-        CREATE TABLE youtube_videos
-        (ID SERIAL PRIMARY  KEY         NOT NULL UNIQUE,
-          TITLE             TEXT        NOT NULL, 
-          CHANNEL_ID        TEXT        NOT NULL,
-          CHANNEL_LINK      TEXT        NOT NULL,
-          CHANNEL_NAME      TEXT        NOT NULL,
-          VIEW_COUNT        TEXT        NOT NULL,
-          VIDEO_DURATION    TEXT        NOT NULL,
-          VIDEO_PUB_DATE    TEXT        NOT NULL,
-          CREATED_AT        TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
-          ); 
-          '''
-    # Execute a command: this creates a new table
-    cursor.execute(create_table_query)
-    connection.commit()
-    print("Table created successfully in PostgreSQL ")
 
-except (Exception, Error) as error:
-    print("Error while connecting to PostgreSQL", error)
-finally:
-    if connection:
-        cursor.close()
-        connection.close()
-        print("PostgreSQL connection is closed")
+def create_db(conn, config_data):
+    try:
+        print("create db", config_data["queries"]["create_maintable"])
+        conn.execute(config_data["queries"]["create_maintable"])
+    except Exception as e:
+        print(f"Error occured while creating DB: {e}")
+
+
+def insert_into_db(data, conn, config_data):
+    # creating column list for insertion
+    cols = "`,`".join([str(i) for i in data.columns.tolist()])
+    cur = conn.cursor()
+    # Insert DataFrame recrds one by one.
+    import sys, traceback, pdb
+
+    try:
+        for i, row in data.iterrows():
+            sql = "INSERT INTO `youtube_videos` (`" + cols + "`) VALUES (" + "%s," * (len(row) - 1) + "%s)"
+            print(sql % tuple(row))
+            print(sql)
+            print(len(tuple(row)))
+            # # print(tuple(row))
+            pdb.set_trace()
+            cur.execute(sql, tuple(row))
+    except Exception:
+        print(traceback.format_exc())
+        # or
+        # print(sys.exc_info()[2])
+
+        conn.commit()
