@@ -14,6 +14,7 @@ import traceback
 import re
 import sys
 import pdb
+from multiprocessing import Pool
 
 
 # TODO
@@ -41,33 +42,33 @@ def save_details(search_result):
     return yt_details
 
 
-def main2():
-    '''
-    Searches for all types of results like videos, channels & playlists in YouTube.
-    'type' key in the JSON/Dictionary may be used to differentiate between the types of result.
-    '''
-    videosSearch = VideosSearch('computer science', limit=40, language='en', region='US')
-    video_result = videosSearch.result(mode=ResultMode.json)
-    result = json.loads(video_result)['result']
-
-    count = collections.Counter([user['channel']['name'] for user in result])
-    pp.pprint(count)
-
-    result = json.loads(video_result)['result']
-    count = collections.Counter([user['channel']['name'] for user in result])
-    pp.pprint(count)
-    # f = open('output.json', 'w')
-    # f.write(result)
-
-    # video = Video.get('https://www.youtube.com/watch?v=9Ov41bcjeIc', mode = ResultMode.json)
-    # videoInfo = Video.getInfo('https://www.youtube.com/watch?v=9Ov41bcjeIc', mode = ResultMode.json)
-    # pp.pprint(video)
-    # f.write(json.dumps(video))
-
-    # f.close()
-
-    # save_details(result)
-    # print(result)
+# def main2():
+#     '''
+#     Searches for all types of results like videos, channels & playlists in YouTube.
+#     'type' key in the JSON/Dictionary may be used to differentiate between the types of result.
+#     '''
+#     videosSearch = VideosSearch('computer science', limit=40, language='en', region='US')
+#     video_result = videosSearch.result(mode=ResultMode.json)
+#     result = json.loads(video_result)['result']
+#
+#     count = collections.Counter([user['channel']['name'] for user in result])
+#     pp.pprint(count)
+#
+#     result = json.loads(video_result)['result']
+#     count = collections.Counter([user['channel']['name'] for user in result])
+#     pp.pprint(count)
+#     # f = open('output.json', 'w')
+#     # f.write(result)
+#
+#     # video = Video.get('https://www.youtube.com/watch?v=9Ov41bcjeIc', mode = ResultMode.json)
+#     # videoInfo = Video.getInfo('https://www.youtube.com/watch?v=9Ov41bcjeIc', mode = ResultMode.json)
+#     # pp.pprint(video)
+#     # f.write(json.dumps(video))
+#
+#     # f.close()
+#
+#     # save_details(result)
+#     # print(result)
 
 
 dict_for_df = {"view_count": [], "title": [], "pub_time": [], "duration": [], "channel_name": [], "channel_id": [],
@@ -118,7 +119,6 @@ def get_results(kw, config_data):
                     search.next()
                     search_results = search_results + search_result
                     count = collections.Counter([user['channel']['name'] for user in search_results])
-                    # print("counter ", json.dumps(dict(count)))
                     counter_results = counter_results + count
                 else:
                     break
@@ -139,19 +139,28 @@ def get_results(kw, config_data):
     return sorted_list, count, dict_for_df
 
 
-def the_coordinator(kws, config_data, db_conn):
+def the_coordinator(kw):
     occurence_counter = Counter()
-    try:
-        for kw in kws:
-            suggestions = Suggestions(language='en', region='US')
-            suggestion_list = json.loads(suggestions.get(kw, mode=ResultMode.json))['result']
-            final_list = []
+    ############################################################
+    ## INIT PHASE
+    ############################################################
+    with open("config.json", 'r') as configs:
+        config_data = json.load(configs)
 
-            for kw_sugg in suggestion_list:
-                print(f"Suggested KW <{kw_sugg}> for <{kw}>")
-                videosresults_by_kw, occurences_of_yt, dict_for_df = get_results(kw_sugg, config_data)
-                final_list = final_list + videosresults_by_kw
-                occurence_counter = occurence_counter + occurences_of_yt
+    db_conn = db_helper.create_connection(config_data['DB_PATH'])
+    try:
+        # multiprocessing
+
+
+        suggestions = Suggestions(language='en', region='US')
+        suggestion_list = json.loads(suggestions.get(kw, mode=ResultMode.json))['result']
+        final_list = []
+
+        for kw_sugg in suggestion_list:
+            print(f"Suggested KW <{kw_sugg}> for <{kw}>")
+            videosresults_by_kw, occurences_of_yt, dict_for_df = get_results(kw_sugg, config_data)
+            final_list = final_list + videosresults_by_kw
+            occurence_counter = occurence_counter + occurences_of_yt
 
             # print(final_list)
             counter_dict = dict(sorted(dict(occurence_counter).items(), key=lambda item: item[1]))
@@ -172,7 +181,7 @@ def the_coordinator(kws, config_data, db_conn):
             result_df = pd.DataFrame.from_dict(dict_for_df)
             # db_helper.create_db(db_conn, config_data)
             # db_helper.insert_into_db(result_df, db_conn, config_data
-        result_df.to_sql(name='coworking', if_exists='append', index_label='id', con=db_conn)
+        result_df.to_sql(name='coworking', if_exists='append', con=db_conn)
 
 
 
@@ -197,28 +206,32 @@ def init_logger():
 def create_kw_list(kw_file):
     kw_list = []
 
-    with open(kw_file, "r") as f:
+    with open(kw_file, "r", encoding="utf-8") as f:
         for line in f:
-            kw_list.append(line)
+            kw_list.append(line.strip())
         logging.info('Keywords have been created successfully.')
 
     return kw_list
 
 
 def main():
-    with open("config.json", 'r') as configs:
-        config_data = json.load(configs)
+
 
     init_logger()
     kws = create_kw_list("keywords/keywords1.txt")
-
+    pdb.set_trace()
     logging.info("start initiator")
-    the_coordinator(kws, config_data, db_helper.create_connection(config_data['DB_PATH']))
+
+    pool = Pool(8)            # Create a multiprocessing Pool
+    pool.map(the_coordinator, kws)  # process data_inputs iterable with pool
+    pool.close()  # no more tasks
+    pool.join()  # wrap up current tasks
+
     print("+" * 28)
     print("+++ FINISHED COORDINATOR +++")
     print("+" * 28)
 
-
-main()
+if __name__ == '__main__':
+    main()
 
 # json.loads("/output_files/dict_for_df")
