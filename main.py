@@ -10,7 +10,10 @@ import time
 from datetime import datetime
 import init_database as db_helper
 import pandas as pd
-import numpy as np
+import traceback
+import re
+import sys
+import pdb
 
 
 # TODO
@@ -83,12 +86,19 @@ def get_results(kw, config_data):
                 if len(search.result()['result']) > 0:
                     # print("RESULT:", search.result()['result'])
                     data = search.result()['result'][0]
-
                     dict_for_df['title'].append(data['title'])
                     dict_for_df['channel_id'].append(data['channel']['id'])
                     dict_for_df['channel_link'].append(data['channel']['link'])
                     dict_for_df['channel_name'].append(data['channel']['name'])
-                    dict_for_df['view_count'].append(data['viewCount']['text'])
+                    if data['viewCount']['text'] is None:
+                        dict_for_df['view_count'].append(0)
+                    elif "views" in data['viewCount']['text']:
+                        if data['viewCount']['text'] == "No views" or data['viewCount']['text'] == "" or \
+                                data['viewCount']['text'] is None:
+                            dict_for_df['view_count'].append(0)
+                        else:
+                            dict_for_df['view_count'].append(int(re.sub("[^0-9]", "", data['viewCount']['text'])))
+
                     dict_for_df['duration'].append(data['duration'])
                     dict_for_df['pub_time'].append(data['publishedTime'])
                     dict_for_df['thumbnails'].append(data['thumbnails'][0]['url'])
@@ -99,8 +109,10 @@ def get_results(kw, config_data):
                 print(f"Error occured while appending data: {e}")
                 logging.error(f"Error occurred while scraping: {data}")
                 pp.pprint(data)
+
             search_result = search.result()['result']
             print(page, len(search_result))
+
             try:
                 if len(search_result) > 0:
                     search.next()
@@ -117,8 +129,11 @@ def get_results(kw, config_data):
         # print(dict(sorted(final.items(), key=lambda item: item[1])))
         # pp.pprint(sorted_list)
     except Exception as e:
-        print(f"Error occured while looping through pages: {e}")
-        logging.error(f"Error occured while looping through pages: {e}")
+        print("Exception while executing get_results:")
+        print("-" * 60)
+        traceback.print_exc(file=sys.stdout)
+        print("-" * 60)
+        logging.error(f"Exception while executing get_results: {e}")
         pass
 
     return sorted_list, count, dict_for_df
@@ -131,6 +146,7 @@ def the_coordinator(kws, config_data, db_conn):
             suggestions = Suggestions(language='en', region='US')
             suggestion_list = json.loads(suggestions.get(kw, mode=ResultMode.json))['result']
             final_list = []
+
             for kw_sugg in suggestion_list:
                 print(f"Suggested KW <{kw_sugg}> for <{kw}>")
                 videosresults_by_kw, occurences_of_yt, dict_for_df = get_results(kw_sugg, config_data)
@@ -155,16 +171,16 @@ def the_coordinator(kws, config_data, db_conn):
 
             result_df = pd.DataFrame.from_dict(dict_for_df)
             # db_helper.create_db(db_conn, config_data)
-
             # db_helper.insert_into_db(result_df, db_conn, config_data
-        import pdb
-        pdb.set_trace()
-        result_df.to_sql(name='youtube_videos', if_exists='append', con=db_conn)
+        result_df.to_sql(name='coworking', if_exists='append', index_label='id', con=db_conn)
 
 
 
     except Exception as e:
-        print(f"Error occured: {e}")
+        print("Exception while executing get_results:")
+        print("-" * 60)
+        traceback.print_exc(file=sys.stdout)
+        print("-" * 60)
         logging.error(f"Error occured in the_coordinator: {e}")
 
 
@@ -187,6 +203,7 @@ def create_kw_list(kw_file):
         logging.info('Keywords have been created successfully.')
 
     return kw_list
+
 
 def main():
     with open("config.json", 'r') as configs:
