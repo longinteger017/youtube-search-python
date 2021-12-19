@@ -123,7 +123,12 @@ def get_results(kw, config_data):
                 else:
                     break
             except Exception as e:
-                logging.error(f"Error occured while next()")
+                print("Exception while executing get_results:")
+                print("-" * 60)
+                traceback.print_exc(file=sys.stdout)
+                print("-" * 60)
+                logging.error(f"Exception while executing next(): {e}")
+
         final = dict(counter_results)
         sorted_list = sorted(search_results, key=lambda d: d['channel']['name'])
         # print(dict(sorted(final.items(), key=lambda item: item[1])))
@@ -150,14 +155,12 @@ def the_coordinator(kw):
     db_conn = db_helper.create_connection(config_data['DB_PATH'])
     try:
         # multiprocessing
-
-
         suggestions = Suggestions(language='en', region='US')
         suggestion_list = json.loads(suggestions.get(kw, mode=ResultMode.json))['result']
         final_list = []
 
         for kw_sugg in suggestion_list:
-            print(f"Suggested KW <{kw_sugg}> for <{kw}>")
+            print(f"Suggested KW for <{kw}> ==> <{kw_sugg}>")
             videosresults_by_kw, occurences_of_yt, dict_for_df = get_results(kw_sugg, config_data)
             final_list = final_list + videosresults_by_kw
             occurence_counter = occurence_counter + occurences_of_yt
@@ -172,18 +175,14 @@ def the_coordinator(kw):
             f.write(",")
         f.write(']')
 
-        with open('output_dict.json', 'w') as fp:
+        with open('count_youtuber_occurencies.json', 'w') as fp:
             json.dump(counter_dict, fp)
 
-        with open('dict_for_df.json', 'w') as fp:
-            json.dump(dict_for_df, fp)
+        # with open('dict_for_df.json', 'w') as fp:
+        #     json.dump(dict_for_df, fp)
 
-            result_df = pd.DataFrame.from_dict(dict_for_df)
-            # db_helper.create_db(db_conn, config_data)
-            # db_helper.insert_into_db(result_df, db_conn, config_data
-        result_df.to_sql(name='coworking', if_exists='append', con=db_conn)
-
-
+        result_df = pd.DataFrame.from_dict(dict_for_df)
+        result_df.to_sql(name='coworking', if_exists='append', con=db_conn, index=False)
 
     except Exception as e:
         print("Exception while executing get_results:")
@@ -215,14 +214,11 @@ def create_kw_list(kw_file):
 
 
 def main():
-
-
     init_logger()
     kws = create_kw_list("keywords/keywords1.txt")
-    pdb.set_trace()
     logging.info("start initiator")
 
-    pool = Pool(8)            # Create a multiprocessing Pool
+    pool = Pool(8)  # Create a multiprocessing Pool
     pool.map(the_coordinator, kws)  # process data_inputs iterable with pool
     pool.close()  # no more tasks
     pool.join()  # wrap up current tasks
@@ -230,6 +226,7 @@ def main():
     print("+" * 28)
     print("+++ FINISHED COORDINATOR +++")
     print("+" * 28)
+
 
 if __name__ == '__main__':
     main()

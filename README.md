@@ -1,15 +1,19 @@
 # How to run:
 1. Fill the keyword lists in keywords.txt by adding them line by line
-2. Run ```python3 main.py```
-3. Check database in sqlite database 'youtube_videos.db' by executing
+2. Run ```pip3 install -r requirements.txt```
+3. Run ```python3 main.py```
+4. Check database in sqlite database 'youtube_videos.db' by executing
 ```sqlite3 youtube_videos.db```
 
 
 # TODOs
-1. get youtuber's from scraping process into a dedicated youtuber table with their subscriber count
-2. research NLP and see how to apply it on the database
-2a. create a jupyter notebook to play around
+1. create a 'youtubers' table just for all youtubers where any scraped youtuber gets inserted
+2. get subscriber count of youtuber in youtubers table
+3. get video count of youtuber into youtubers table
 
+4. start a jupyter notebook to apply play around with NLP on the youtuber dataset
+5. start figuring out what the main niche/topic of a youtuber is by applying topic modeling
+---
 # [youtube-search-python](https://github.com/alexmercerind/youtube-search-python)
 
 ##### Search for YouTube videos, channels & playlists. Get video & playlist information using link. Get search suggestions.
