@@ -36,13 +36,18 @@ framework from [Hitesh Kumar Saini](https://github.com/alexmercerind) which work
 [![PyPI - Version](https://img.shields.io/pypi/v/youtube-search-python?style=for-the-badge)](https://pypi.org/project/youtube-search-python)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/youtube-search-python?label=DOWNLOADS&style=for-the-badge)](https://pypi.org/project/youtube-search-python)
 
-## Installing
-```bash
+## How to use & setup
+- Setup a virtual environment and install the youtube framework 
+```
+python3 -m venv env
 pip3 install youtube-search-python
 ```
+- add your keywords into the ```/keywords/keywords1.txt```  file
+- execute the script by running ```python3 main.py ``` 
+- install sqlite client by running```sudo apt install sqlite3``` 
+- access your sqliteDB ```sqlite3 youtube_videos.db``` 
+- run queries and see your results
 
-
-</details>
 
 
 ## Information and collaboration
