@@ -14,7 +14,6 @@ import re
 import sys
 import pdb
 
-#
 dict_for_df = {"view_count": [], "title": [], "pub_time": [], "duration": [], "channel_name": [], "channel_id": [],
                "channel_link": [], "thumbnails": []}
 
@@ -27,6 +26,7 @@ def get_results(kw, config_data):
     # loop through pages of result of a kw
     try:
         for page in range(0, config_data['limit_of_pages_per_kw']):
+
             try:
                 if len(search.result()['result']) > 0:
                     # print("RESULT:", search.result()['result'])
@@ -153,6 +153,7 @@ def create_kw_list(kw_file):
         print(traceback.format_exc())
 
     return kw_list
+
 
 
 def main():
