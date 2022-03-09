@@ -1,6 +1,5 @@
 from sqlite3 import Error
 import os
-<<<<<<< HEAD
 import sqlite3
 import logging
 import traceback
