@@ -1,9 +1,10 @@
+import psql_connect
+import psql_create
 from youtubesearchpython import *
 from datetime import datetime
 from collections import Counter
 from multiprocessing import Pool
 import init_database as db_helper
-import pprint as pp
 import json
 import collections
 import logging
@@ -12,7 +13,6 @@ import pandas as pd
 import traceback
 import re
 import sys
-import pdb
 
 dict_for_df = {"view_count": [], "title": [], "pub_time": [], "duration": [], "channel_name": [], "channel_id": [],
                "channel_link": [], "thumbnails": []}
@@ -21,16 +21,16 @@ dict_for_df = {"view_count": [], "title": [], "pub_time": [], "duration": [], "c
 def get_results(kw, config_data):
     search_results = []
     counter_results = Counter()
-    search = VideosSearch(kw)
+    search_object = VideosSearch(kw)
 
     # loop through pages of result of a kw
     try:
         for page in range(0, config_data['limit_of_pages_per_kw']):
 
             try:
-                if len(search.result()['result']) > 0:
+                if len(search_object.result()['result']) > 0:
                     # print("RESULT:", search.result()['result'])
-                    data = search.result()['result'][0]
+                    data: str = search_object.result()['result'][0]
                     dict_for_df['title'].append(data['title'])
                     dict_for_df['channel_id'].append(data['channel']['id'])
                     dict_for_df['channel_link'].append(data['channel']['link'])
@@ -53,12 +53,12 @@ def get_results(kw, config_data):
                 print(f"Error occured while appending data: {e}")
                 logging.error(f"Error occurred while scraping: {data}")
 
-            search_result = search.result()['result']
+            search_result = search_object.result()['result']
             print(page, len(search_result))
 
             try:
                 if len(search_result) > 0:
-                    search.next()
+                    search_object.next()
                     search_results = search_results + search_result
                     count = collections.Counter([user['channel']['name'] for user in search_results])
                     counter_results = counter_results + count
@@ -85,12 +85,13 @@ def get_results(kw, config_data):
 
 def the_coordinator(kw):
     ## INIT PHASE
-
+    global dict_for_df
     occurence_counter = Counter()
     with open("config.json", 'r') as configs:
         config_data = json.load(configs)
-
-    db_conn = db_helper.create_connection(config_data['DB_PATH'])
+    c = psql_connect.connect()
+    exit()
+    # db_conn = db_helper.create_connection(config_data['DB_PATH'])
 
     try:
         suggestions = Suggestions(language='en', region='US')
@@ -108,6 +109,7 @@ def the_coordinator(kw):
         result_df = pd.DataFrame.from_dict(dict_for_df)
 
         ## LOADING DATA INTO DB
+
         result_df.to_sql(name='coworking', if_exists='append', con=db_conn, index=False)
 
         #######################################
@@ -132,10 +134,10 @@ def the_coordinator(kw):
 
 def init_logger():
     now = datetime.now()
-    dt_string = now.strftime("%d-%m-%Y--%H:%M:%S")
+    dt_string = now.strftime("%d-%m-%Y--%H-%M-%S")
     filename = "logs/main_" + dt_string + ".log"
     logging.basicConfig(format='%(asctime)s %(message)s',
-                        datefmt='%m/%d/%Y %I:%M:%S %p',
+                        datefmt='%m/%d/%Y_%I:%M:%S',
                         filename=filename,
                         level=logging.DEBUG)
 
@@ -155,17 +157,17 @@ def create_kw_list(kw_file):
     return kw_list
 
 
-
 def main():
     try:
         init_logger()
         kws = create_kw_list("keywords/keywords1.txt")
         logging.info("start initiator")
 
-        pool = Pool(8)
-        pool.map(the_coordinator, kws)
-        pool.close()
-        pool.join()
+        the_coordinator(kws)
+        # pool = Pool(8)
+        # pool.map(the_coordinator, kws)
+        # pool.close()
+        # pool.join()
 
         print("+" * 28)
         print("+++ FINISHED COORDINATOR +++")
@@ -173,6 +175,7 @@ def main():
     except Exception as e:
         print(f"Exception occured while executing main {e}")
         print(traceback.format_exc())
+
 
 if __name__ == '__main__':
     main()

@@ -1,8 +1,7 @@
 from sqlite3 import Error
-import os
 import sqlite3
-import logging
 import traceback
+
 
 def create_connection(local_db_path):
     try:
@@ -20,7 +19,8 @@ def create_db(conn, config_data):
     except Exception as e:
         print(f"Error occured while creating DB: {e}")
 
-## alternative way to insert without using DataFrames
+
+# alternative way to insert without using DataFrames
 def insert_into_db(df, conn):
     cols = "`,`".join([str(i) for i in df.columns.tolist()])
     cur = conn.cursor()
@@ -43,3 +43,7 @@ def check_db():
         print(row)
 
     con.close()
+
+
+
+
